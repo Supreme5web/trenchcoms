@@ -3,6 +3,7 @@ import { useParams, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabase.js";
 import LiveTokenPanel from "../components/LiveTokenPanel.jsx";
+import Icon from "../components/Icon.jsx";
 
 export default function Community() {
   const { slug } = useParams();
@@ -119,7 +120,7 @@ export default function Community() {
           style={
             community.banner
               ? { backgroundImage: `url(${community.banner})`, backgroundSize: "cover" }
-              : { background: "linear-gradient(120deg, rgba(35,215,183,.5), rgba(111,124,255,.4))" }
+              : { background: "linear-gradient(120deg, rgba(139,92,246,.35), rgba(139,92,246,.08))" }
           }
         />
         <div className="communityHeroBody">
@@ -127,7 +128,7 @@ export default function Community() {
             <div className="avatar heroAvatar">{community.name.slice(0, 1).toUpperCase()}</div>
             <div>
               <h1>
-                {community.name} {community.verified && <span className="verified">✓</span>}
+                {community.name} {community.verified && <span className="verified"><Icon name="check" /></span>}
               </h1>
               <span className="symbol">{community.symbol ? `$${community.symbol}` : ""}</span>
             </div>
@@ -147,7 +148,8 @@ export default function Community() {
 
       {community.pinned_announcement && (
         <div className="announcement glassPanel">
-          <span>📌 {community.pinned_announcement}</span>
+          <Icon name="pin" />
+          <span>{community.pinned_announcement}</span>
         </div>
       )}
 
@@ -238,10 +240,10 @@ export default function Community() {
               </header>
               <p>{post.content}</p>
               <div className="postActions">
-                <button>♥ {post.likes?.[0]?.count || 0}</button>
-                <button>💬 {post.comments?.[0]?.count || 0}</button>
+                <button><Icon name="heart" /> {post.likes?.[0]?.count || 0}</button>
+                <button><Icon name="comment" /> {post.comments?.[0]?.count || 0}</button>
                 {(post.profile_id === user?.id || canModerate) && (
-                  <button onClick={() => handleDelete(post.id)}>Delete</button>
+                  <button onClick={() => handleDelete(post.id)}><Icon name="trash" /> Delete</button>
                 )}
               </div>
             </div>

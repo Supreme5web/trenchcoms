@@ -2,14 +2,15 @@ import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabase.js";
+import Icon from "./Icon.jsx";
 
 const NAV_ITEMS = [
-  { to: "/app", label: "Home", icon: "H", end: true },
-  { to: "/app/explore", label: "Explore", icon: "E" },
-  { to: "/app/create", label: "Create", icon: "+" },
-  { to: "/app/notifications", label: "Alerts", icon: "N" },
-  { to: "/app/profile", label: "Profile", icon: "P" },
-  { to: "/app/settings", label: "Settings", icon: "S" },
+  { to: "/app", label: "Home", icon: "home", end: true },
+  { to: "/app/explore", label: "Explore", icon: "explore" },
+  { to: "/app/create", label: "Create", icon: "create" },
+  { to: "/app/notifications", label: "Alerts", icon: "bell" },
+  { to: "/app/profile", label: "Profile", icon: "user" },
+  { to: "/app/settings", label: "Settings", icon: "settings" },
 ];
 
 export default function AppShell() {
@@ -37,12 +38,12 @@ export default function AppShell() {
   }, []);
 
   if (loading || !user) {
-    return <div style={{ padding: 40, textAlign: "center" }}>Loading TrenchComs...</div>;
+    return <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>Loading TrenchComs...</div>;
   }
 
   return (
     <div className="appFrame">
-      <aside className="leftRail glassPanel">
+      <aside className="leftRail">
         <div className="brand">
           <span className="brandMark">TC</span>
           <span className="brandText">TrenchComs</span>
@@ -55,12 +56,13 @@ export default function AppShell() {
               end={item.end}
               className={({ isActive }) => `navItem${isActive ? " active" : ""}`}
             >
-              <span>{item.icon}</span>
-              {item.label}
+              <span><Icon name={item.icon} /></span>
+              <span>{item.label}</span>
             </NavLink>
           ))}
         </nav>
         <button className="button ghost wide" onClick={() => signOut()}>
+          <Icon name="signOut" />
           Sign out
         </button>
       </aside>

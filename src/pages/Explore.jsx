@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
+import Icon from "../components/Icon.jsx";
 
 const TABS = ["Trending", "New", "Verified"];
 
@@ -61,7 +62,7 @@ export default function Explore() {
             style={{ cursor: "pointer" }}
           >
             <div className="cardTitle">
-              {c.name} {c.verified && <span className="verified">✓</span>}
+              {c.name} {c.verified && <span className="verified"><Icon name="check" /></span>}
             </div>
             <span className="symbol">{c.symbol ? `$${c.symbol}` : ""}</span>
             <p>{c.description}</p>

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabase.js";
+import Icon from "../components/Icon.jsx";
 
 const PAGE_SIZE = 10;
 
@@ -148,8 +149,8 @@ export default function Home() {
               </header>
               <p>{post.content}</p>
               <div className="postActions">
-                <button>♥ {post.likes?.[0]?.count || 0}</button>
-                <button>💬 {post.comments?.[0]?.count || 0}</button>
+                <button><Icon name="heart" /> {post.likes?.[0]?.count || 0}</button>
+                <button><Icon name="comment" /> {post.comments?.[0]?.count || 0}</button>
               </div>
             </div>
           </article>
