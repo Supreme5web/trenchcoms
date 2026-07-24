@@ -42,19 +42,44 @@ export function AuthProvider({ children }) {
       console.error("profile fetch error", error);
       return;
     }
+
+    const meta = user.user_metadata || {};
+    const currentProvider = user.app_metadata?.provider || "unknown";
+
     if (data) {
+      // Google and X can resolve to the same auth user if they share a
+      // verified email. When that happens, keep the profile's name/avatar
+      // in sync with whichever provider was used for *this* sign-in,
+      // instead of permanently showing whichever provider signed up first.
+      if (data.provider !== currentProvider) {
+        const displayName =
+          meta.full_name || meta.name || meta.user_name || data.display_name;
+        const avatar = meta.avatar_url || meta.picture || data.avatar;
+        const { data: updated, error: updateError } = await supabase
+          .from("profiles")
+          .update({
+            display_name: displayName,
+            avatar,
+            provider: currentProvider,
+          })
+          .eq("id", user.id)
+          .select()
+          .maybeSingle();
+        if (!updateError && updated) {
+          setProfile(updated);
+          return;
+        }
+      }
       setProfile(data);
       return;
     }
 
-    const meta = user.user_metadata || {};
     const displayName =
       meta.full_name ||
       meta.name ||
       meta.user_name ||
       user.email?.split("@")[0] ||
       "New User";
-    const provider = user.app_metadata?.provider || "unknown";
     const username = fallbackUsername(
       meta.user_name || meta.preferred_username || displayName,
     );
@@ -66,7 +91,7 @@ export function AuthProvider({ children }) {
         username,
         display_name: displayName,
         avatar: meta.avatar_url || meta.picture || null,
-        provider,
+        provider: currentProvider,
       })
       .select()
       .maybeSingle();
