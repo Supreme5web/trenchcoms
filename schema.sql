@@ -48,8 +48,10 @@ create table if not exists public.posts (
   id uuid primary key default gen_random_uuid(),
   community_id uuid not null references public.communities(id) on delete cascade,
   profile_id uuid not null references public.profiles(id) on delete cascade,
-  content text not null check (char_length(content) between 1 and 500),
-  created_at timestamptz not null default now()
+  content text not null default '' check (char_length(content) <= 500),
+  image_url text,
+  created_at timestamptz not null default now(),
+  constraint posts_content_or_image check (char_length(content) > 0 or image_url is not null)
 );
 
 create table if not exists public.likes (

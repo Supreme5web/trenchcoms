@@ -29,7 +29,9 @@ export default function Profile() {
       <div className="profileHero glassPanel">
         <div className="profileBanner" />
         <div className="profileBody">
-          <div className="avatar large">{(profile.display_name || "?").slice(0, 1).toUpperCase()}</div>
+          <div className="avatar large">
+            {profile.avatar ? <img src={profile.avatar} alt="" /> : (profile.display_name || "?").slice(0, 1).toUpperCase()}
+          </div>
           <h1>{profile.display_name}</h1>
           <p className="muted">
             @{profile.username} · joined via {profile.provider}

@@ -26,7 +26,7 @@ export default function AppShell() {
     let active = true;
     supabase
       .from("communities")
-      .select("id, name, slug, symbol, market_cap")
+      .select("id, name, slug, symbol, market_cap, logo")
       .order("market_cap", { ascending: false, nullsFirst: false })
       .limit(5)
       .then(({ data, error }) => {
@@ -45,8 +45,10 @@ export default function AppShell() {
     <div className="appFrame">
       <aside className="leftRail">
         <div className="brand">
-          <span className="brandMark">TC</span>
-          <span className="brandText">TrenchComs</span>
+          <span className="wordmark">
+            <span className="wordmarkTrench">Trench</span>
+            <span className="wordmarkComs">Coms</span>
+          </span>
         </div>
         <nav className="sideNav">
           {NAV_ITEMS.map((item) => (
@@ -77,7 +79,13 @@ export default function AppShell() {
             <h3>Signed in as</h3>
           </div>
           <div className="miniCommunity">
-            <div className="avatar">{(profile?.display_name || "?").slice(0, 1).toUpperCase()}</div>
+            <div className="avatar">
+              {profile?.avatar ? (
+                <img src={profile.avatar} alt="" />
+              ) : (
+                (profile?.display_name || "?").slice(0, 1).toUpperCase()
+              )}
+            </div>
             <div>
               <strong>{profile?.display_name}</strong>
               <small>@{profile?.username}</small>
@@ -96,7 +104,9 @@ export default function AppShell() {
               onClick={() => navigate(`/app/community/${c.slug}`)}
               style={{ cursor: "pointer" }}
             >
-              <div className="avatar">{c.name.slice(0, 1).toUpperCase()}</div>
+              <div className="avatar">
+                {c.logo ? <img src={c.logo} alt="" /> : c.name.slice(0, 1).toUpperCase()}
+              </div>
               <div>
                 <strong>{c.name}</strong>
                 <small>{c.symbol ? `$${c.symbol}` : "—"}</small>

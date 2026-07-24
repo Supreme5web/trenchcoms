@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabase.js";
 import { fetchTokenInfo } from "../lib/dexscreener.js";
+import { uploadImage } from "../lib/storage.js";
 
 function slugify(name) {
   return name
@@ -29,6 +30,14 @@ export default function CreateCommunity() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [bannerFile, setBannerFile] = useState(null);
+  const [bannerPreview, setBannerPreview] = useState("");
+
+  const handleBannerChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    setBannerFile(file);
+    setBannerPreview(file ? URL.createObjectURL(file) : "");
+  };
 
   // Result of the DexScreener lookup for the current contract_address.
   // Kept separate from `form` since the user should still be able to
@@ -81,6 +90,17 @@ export default function CreateCommunity() {
     setSubmitting(true);
     setError("");
 
+    let bannerUrl = null;
+    if (bannerFile) {
+      try {
+        bannerUrl = await uploadImage(bannerFile, "banners", user.id);
+      } catch (uploadError) {
+        setError(`Banner upload failed: ${uploadError.message}`);
+        setSubmitting(false);
+        return;
+      }
+    }
+
     const slug = `${slugify(form.name)}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const { data, error: insertError } = await supabase
@@ -97,6 +117,7 @@ export default function CreateCommunity() {
         telegram: form.telegram.trim() || null,
         discord: form.discord.trim() || null,
         logo: lookup.data?.logo || null,
+        banner: bannerUrl,
         market_cap: lookup.data?.marketCap || null,
       })
       .select()
@@ -163,6 +184,13 @@ export default function CreateCommunity() {
           <label>
             Discord
             <input value={form.discord} onChange={update("discord")} placeholder="https://discord.gg/..." />
+          </label>
+          <label className="wideField">
+            Banner image
+            <div className="bannerUpload" style={bannerPreview ? { backgroundImage: `url(${bannerPreview})` } : undefined}>
+              {!bannerPreview && <span className="muted">Recommended 1500×500 — shown at the top of your community page</span>}
+              <input type="file" accept="image/*" onChange={handleBannerChange} />
+            </div>
           </label>
         </div>
 

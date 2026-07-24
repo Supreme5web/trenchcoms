@@ -2,7 +2,9 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabase.js";
+import { uploadImage } from "../lib/storage.js";
 import LiveTokenPanel from "../components/LiveTokenPanel.jsx";
+import ReplyThread from "../components/ReplyThread.jsx";
 import Icon from "../components/Icon.jsx";
 
 export default function Community() {
@@ -12,11 +14,14 @@ export default function Community() {
   const [membership, setMembership] = useState(null);
   const [posts, setPosts] = useState([]);
   const [draft, setDraft] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
   const [posting, setPosting] = useState(false);
   const [joining, setJoining] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
   const [memberCount, setMemberCount] = useState(null);
+  const [openThread, setOpenThread] = useState(null);
 
   const loadCommunity = useCallback(async () => {
     const { data, error } = await supabase.from("communities").select("*").eq("slug", slug).maybeSingle();
@@ -45,7 +50,9 @@ export default function Community() {
 
     const { data: postData } = await supabase
       .from("posts")
-      .select("id, content, created_at, profile_id, profiles(username, display_name), likes(count), comments(count)")
+      .select(
+        "id, content, image_url, created_at, profile_id, profiles(username, display_name, avatar), likes(profile_id), comments(count)"
+      )
       .eq("community_id", data.id)
       .order("created_at", { ascending: false })
       .limit(25);
@@ -81,17 +88,35 @@ export default function Community() {
     setJoining(false);
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    setImageFile(file);
+    setImagePreview(file ? URL.createObjectURL(file) : "");
+  };
+
   const handlePost = async () => {
-    if (!draft.trim() || !community) return;
+    if ((!draft.trim() && !imageFile) || !community) return;
     setPosting(true);
+    let imageUrl = null;
+    if (imageFile) {
+      try {
+        imageUrl = await uploadImage(imageFile, "posts", user.id);
+      } catch (err) {
+        setPosting(false);
+        return;
+      }
+    }
     const { error } = await supabase.from("posts").insert({
       community_id: community.id,
       profile_id: user.id,
       content: draft.trim(),
+      image_url: imageUrl,
     });
     setPosting(false);
     if (!error) {
       setDraft("");
+      setImageFile(null);
+      setImagePreview("");
       loadCommunity();
     }
   };
@@ -99,6 +124,27 @@ export default function Community() {
   const handleDelete = async (postId) => {
     await supabase.from("posts").delete().eq("id", postId);
     setPosts((prev) => prev.filter((p) => p.id !== postId));
+  };
+
+  const toggleLike = async (post) => {
+    const likedByMe = post.likes?.some((l) => l.profile_id === user.id);
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === post.id
+          ? {
+              ...p,
+              likes: likedByMe
+                ? p.likes.filter((l) => l.profile_id !== user.id)
+                : [...(p.likes || []), { profile_id: user.id }],
+            }
+          : p
+      )
+    );
+    if (likedByMe) {
+      await supabase.from("likes").delete().eq("post_id", post.id).eq("profile_id", user.id);
+    } else {
+      await supabase.from("likes").insert({ post_id: post.id, profile_id: user.id });
+    }
   };
 
   if (notFound) return <Navigate to="/app/explore" replace />;
@@ -125,7 +171,9 @@ export default function Community() {
         />
         <div className="communityHeroBody">
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div className="avatar heroAvatar">{community.name.slice(0, 1).toUpperCase()}</div>
+            <div className="avatar heroAvatar">
+              {community.logo ? <img src={community.logo} alt="" /> : community.name.slice(0, 1).toUpperCase()}
+            </div>
             <div>
               <h1>
                 {community.name} {community.verified && <span className="verified"><Icon name="check" /></span>}
@@ -207,7 +255,9 @@ export default function Community() {
 
       {isMember ? (
         <div className="composer glassPanel">
-          <div className="avatar">{(profile?.display_name || "?").slice(0, 1).toUpperCase()}</div>
+          <div className="avatar">
+            {profile?.avatar ? <img src={profile.avatar} alt="" /> : (profile?.display_name || "?").slice(0, 1).toUpperCase()}
+          </div>
           <div className="composerBody">
             <textarea
               placeholder={`Post in ${community.name}...`}
@@ -215,11 +265,32 @@ export default function Community() {
               onChange={(e) => setDraft(e.target.value)}
               maxLength={500}
             />
+            {imagePreview && (
+              <div className="composerImagePreview">
+                <img src={imagePreview} alt="" />
+                <button
+                  type="button"
+                  className="removeImage"
+                  onClick={() => {
+                    setImageFile(null);
+                    setImagePreview("");
+                  }}
+                >
+                  <Icon name="close" />
+                </button>
+              </div>
+            )}
             <div className="composerActions">
-              <small>{draft.length}/500</small>
-              <button className="button primary" disabled={posting || !draft.trim()} onClick={handlePost}>
-                {posting ? "Posting..." : "Post"}
-              </button>
+              <label className="imageAttach">
+                <Icon name="image" />
+                <input type="file" accept="image/*" onChange={handleImageChange} hidden />
+              </label>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <small>{draft.length}/500</small>
+                <button className="button primary" disabled={posting || (!draft.trim() && !imageFile)} onClick={handlePost}>
+                  {posting ? "Posting..." : "Post"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -230,25 +301,40 @@ export default function Community() {
       )}
 
       <div className="feedStack">
-        {posts.map((post) => (
-          <article className="postCard glassPanel" key={post.id}>
-            <div className="avatar">{(post.profiles?.display_name || "?").slice(0, 1).toUpperCase()}</div>
-            <div className="postBody">
-              <header>
-                <strong>{post.profiles?.display_name}</strong>
-                <small>@{post.profiles?.username}</small>
-              </header>
-              <p>{post.content}</p>
-              <div className="postActions">
-                <button><Icon name="heart" /> {post.likes?.[0]?.count || 0}</button>
-                <button><Icon name="comment" /> {post.comments?.[0]?.count || 0}</button>
-                {(post.profile_id === user?.id || canModerate) && (
-                  <button onClick={() => handleDelete(post.id)}><Icon name="trash" /> Delete</button>
-                )}
+        {posts.map((post) => {
+          const likedByMe = post.likes?.some((l) => l.profile_id === user?.id);
+          return (
+            <article className="postCard glassPanel" key={post.id}>
+              <div className="avatar">
+                {post.profiles?.avatar ? <img src={post.profiles.avatar} alt="" /> : (post.profiles?.display_name || "?").slice(0, 1).toUpperCase()}
               </div>
-            </div>
-          </article>
-        ))}
+              <div className="postBody">
+                <header>
+                  <strong>{post.profiles?.display_name}</strong>
+                  <small>@{post.profiles?.username}</small>
+                </header>
+                {post.content && <p>{post.content}</p>}
+                {post.image_url && (
+                  <div className="postImage">
+                    <img src={post.image_url} alt="" />
+                  </div>
+                )}
+                <div className="postActions">
+                  <button className={likedByMe ? "liked" : ""} onClick={() => toggleLike(post)}>
+                    <Icon name="heart" filled={likedByMe} /> {post.likes?.length || 0}
+                  </button>
+                  <button onClick={() => setOpenThread(openThread === post.id ? null : post.id)}>
+                    <Icon name="comment" /> {post.comments?.[0]?.count || 0}
+                  </button>
+                  {(post.profile_id === user?.id || canModerate) && (
+                    <button onClick={() => handleDelete(post.id)}><Icon name="trash" /> Delete</button>
+                  )}
+                </div>
+                {openThread === post.id && <ReplyThread postId={post.id} />}
+              </div>
+            </article>
+          );
+        })}
         {posts.length === 0 && <p className="muted">No posts yet — be the first.</p>}
       </div>
     </div>

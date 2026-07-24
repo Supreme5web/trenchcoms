@@ -16,6 +16,8 @@ const ICONS = {
   arrowRight: "M5 12h14M13 5l7 7-7 7",
   spark: "M13 2 3 14h8l-1 8 11-13h-8z",
   link: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71",
+  image: "M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM21 15l-5-5-9 9",
+  close: "M18 6 6 18M6 6l12 12",
 };
 
 export default function Icon({ name, className = "", filled = false }) {
