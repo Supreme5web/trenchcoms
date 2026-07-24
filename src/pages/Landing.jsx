@@ -75,11 +75,11 @@ export default function Landing() {
         <div className="authGroup">
           <button className="authButton" onClick={handleGoogle}>
             <GoogleIcon />
-            Google
+            <span>Google</span>
           </button>
           <button className="authButton primary" onClick={handleTwitter}>
             <XIcon />
-            Continue with X
+            <span>Continue with X</span>
           </button>
         </div>
       </header>
@@ -95,8 +95,9 @@ export default function Landing() {
               The home for <span>crypto communities.</span>
             </h1>
             <p>
-              A verified place for token teams to publish updates, organize holders, and keep
-              community activity connected to on-chain context.
+              A verified place for token teams to publish updates, organize
+              holders, and keep community activity connected to on-chain
+              context.
             </p>
 
             <div className="heroActions">
@@ -121,7 +122,9 @@ export default function Landing() {
             <div className="heroVisualStat">
               <span>Communities live</span>
               <strong className="accentText">
-                {stats.communities === null ? "—" : stats.communities.toLocaleString()}
+                {stats.communities === null
+                  ? "—"
+                  : stats.communities.toLocaleString()}
               </strong>
             </div>
             <div className="heroVisualStat">
@@ -162,8 +165,15 @@ export default function Landing() {
               {featured.map((c) => (
                 <div className="communityCard glassPanel" key={c.id}>
                   <div className="cardTitle">
-                    <div className="avatar" style={{ width: 28, height: 28, fontSize: 13 }}>
-                      {c.logo ? <img src={c.logo} alt="" /> : c.name.slice(0, 1).toUpperCase()}
+                    <div
+                      className="avatar"
+                      style={{ width: 28, height: 28, fontSize: 13 }}
+                    >
+                      {c.logo ? (
+                        <img src={c.logo} alt="" />
+                      ) : (
+                        c.name.slice(0, 1).toUpperCase()
+                      )}
                     </div>
                     {c.name}
                     {c.verified && (
@@ -172,11 +182,17 @@ export default function Landing() {
                       </span>
                     )}
                   </div>
-                  <span className="symbol">{c.symbol ? `$${c.symbol}` : ""}</span>
+                  <span className="symbol">
+                    {c.symbol ? `$${c.symbol}` : ""}
+                  </span>
                   <p>{c.description}</p>
                   <div className="metricRow">
                     <span>Market cap</span>
-                    <strong>{c.market_cap ? `$${Number(c.market_cap).toLocaleString()}` : "Not listed"}</strong>
+                    <strong>
+                      {c.market_cap
+                        ? `$${Number(c.market_cap).toLocaleString()}`
+                        : "Not listed"}
+                    </strong>
                   </div>
                 </div>
               ))}
