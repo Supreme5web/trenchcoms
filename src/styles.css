@@ -581,6 +581,34 @@ p { margin: 0; }
 .linkGrid a:hover { background: var(--accent-soft); }
 .wideInfo ul { margin: 0; padding-left: 18px; color: var(--text-soft); font-size: 14px; line-height: 1.7; }
 
+.socialIcons { display: flex; gap: 10px; margin-top: 12px; }
+.socialIcons a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.socialIcons a:hover { border-color: var(--accent-border); background: var(--accent-soft); color: var(--accent); }
+.socialIcons .icon, .socialIcons .providerIcon { width: 16px; height: 16px; }
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+.modalCard { width: 100%; max-width: 460px; padding: 22px; max-height: 90vh; overflow-y: auto; }
+.modalCard h3 { font-size: 18px; }
+
 .tokenPreview {
   display: flex;
   align-items: center;

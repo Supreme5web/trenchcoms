@@ -24,10 +24,6 @@ export default function CreateCommunity() {
     description: "",
     chain: "solana",
     contract_address: "",
-    website: "",
-    twitter: "",
-    telegram: "",
-    discord: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -114,10 +110,10 @@ export default function CreateCommunity() {
         description: form.description.trim(),
         chain: form.chain,
         contract_address: form.contract_address.trim() || null,
-        website: form.website.trim() || null,
-        twitter: form.twitter.trim() || null,
-        telegram: form.telegram.trim() || null,
-        discord: form.discord.trim() || null,
+        website: lookup.data?.website || null,
+        twitter: lookup.data?.twitter || null,
+        telegram: lookup.data?.telegram || null,
+        discord: lookup.data?.discord || null,
         logo: lookup.data?.logo || null,
         banner: bannerUrl,
         market_cap: lookup.data?.marketCap || null,
@@ -181,22 +177,6 @@ export default function CreateCommunity() {
             Contract address
             <input value={form.contract_address} onChange={update("contract_address")} placeholder="Paste the token's contract address" />
           </label>
-          <label>
-            Website
-            <input value={form.website} onChange={update("website")} placeholder="https://" />
-          </label>
-          <label>
-            Twitter / X
-            <input value={form.twitter} onChange={update("twitter")} placeholder="https://x.com/..." />
-          </label>
-          <label>
-            Telegram
-            <input value={form.telegram} onChange={update("telegram")} placeholder="https://t.me/..." />
-          </label>
-          <label>
-            Discord
-            <input value={form.discord} onChange={update("discord")} placeholder="https://discord.gg/..." />
-          </label>
           <label className="wideField">
             Banner image
             <div className="bannerUpload" style={bannerPreview ? { backgroundImage: `url(${bannerPreview})` } : undefined}>
@@ -205,6 +185,10 @@ export default function CreateCommunity() {
             </div>
           </label>
         </div>
+
+        <p className="inlineNotice">
+          Website and social links aren't entered manually — once a contract address is set (now or later, from the community's Edit menu), we'll pull whatever links DexScreener has for that token automatically.
+        </p>
 
         {lookup.status === "idle" && (
           <p className="inlineNotice">Contract address can be added later. Leave it blank and create the community now.</p>

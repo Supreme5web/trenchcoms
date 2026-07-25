@@ -39,11 +39,17 @@ async function fetchPairsForToken(chainId, tokenAddress) {
  * Returns null if DexScreener has no pairs indexed for the address yet
  * (common for brand-new tokens with no liquidity pool yet).
  */
+function pickSocial(socials, type) {
+  return socials?.find((s) => s.type === type)?.url || null;
+}
+
 export async function fetchTokenInfo(contractAddress, chainId = "solana") {
   if (!contractAddress) return null;
   const pairs = await fetchPairsForToken(chainId, contractAddress.trim());
   const pair = pickBestPair(pairs);
   if (!pair) return null;
+
+  const socials = pair.info?.socials || [];
 
   return {
     name: pair.baseToken?.name || null,
@@ -55,6 +61,10 @@ export async function fetchTokenInfo(contractAddress, chainId = "solana") {
     volume24h: pair.volume?.h24 ?? null,
     priceChange24h: pair.priceChange?.h24 ?? null,
     dexUrl: pair.url || null,
+    website: pair.info?.websites?.[0]?.url || null,
+    twitter: pickSocial(socials, "twitter"),
+    telegram: pickSocial(socials, "telegram"),
+    discord: pickSocial(socials, "discord"),
   };
 }
 

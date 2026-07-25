@@ -19,6 +19,7 @@ const ICONS = {
   image: "M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM21 15l-5-5-9 9",
   close: "M18 6 6 18M6 6l12 12",
   dots: "M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM19 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM5 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z",
+  edit: "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z",
 };
 
 export default function Icon({ name, className = "", filled = false }) {
@@ -55,6 +56,22 @@ export function XIcon(props) {
   return (
     <svg className="providerIcon monoIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
       <path d="M18.9 2h3.3l-7.2 8.24L23.5 22h-6.65l-5.2-6.8L5.7 22H2.4l7.7-8.8L1.95 2H8.8l4.7 6.21L18.9 2zm-1.16 17.93h1.83L7.8 3.96H5.84l11.9 15.97z" />
+    </svg>
+  );
+}
+
+export function TelegramIcon(props) {
+  return (
+    <svg className="providerIcon monoIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M21.9 3.5 2.9 11c-1 .4-1 1.7.1 2l4.7 1.5 1.8 5.7c.2.7 1.1.9 1.6.4l2.6-2.5 4.8 3.6c.7.5 1.7.1 1.9-.7l3.1-15.4c.2-1-.8-1.9-1.6-1.6zM8.6 14.1l9.2-6.9c.3-.2.6.1.3.4l-7.5 7.4c-.3.3-.5.7-.6 1.1l-.2 2-1.1-3.5c-.2-.5 0-.2 -.1-.5z" />
+    </svg>
+  );
+}
+
+export function DiscordIcon(props) {
+  return (
+    <svg className="providerIcon monoIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M20.3 5.4A18 18 0 0 0 15.7 4l-.3.6a13 13 0 0 1 3.9 1.5 15.6 15.6 0 0 0-14.6 0A13 13 0 0 1 8.6 4l-.3-.6a18 18 0 0 0-4.6 1.4C1.2 9.5.5 13.4.9 17.3a17.9 17.9 0 0 0 5.4 2.7l.9-1.4a11.5 11.5 0 0 1-1.9-.9l.5-.4a13 13 0 0 0 11.1 0l.5.4a11.5 11.5 0 0 1-1.9.9l.9 1.4a17.8 17.8 0 0 0 5.4-2.7c.5-4.5-.7-8.3-3.5-11.9zM9 14.9c-1 0-1.7-.9-1.7-1.9s.8-1.9 1.7-1.9 1.7.9 1.7 1.9-.7 1.9-1.7 1.9zm6 0c-.9 0-1.7-.9-1.7-1.9s.8-1.9 1.7-1.9 1.7.9 1.7 1.9-.7 1.9-1.7 1.9z" />
     </svg>
   );
 }

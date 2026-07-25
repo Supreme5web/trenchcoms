@@ -3,10 +3,10 @@ import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabase.js";
 import { uploadImage } from "../lib/storage.js";
-import { CHAIN_OPTIONS } from "../lib/dexscreener.js";
+import { CHAIN_OPTIONS, fetchTokenInfo } from "../lib/dexscreener.js";
 import LiveTokenPanel from "../components/LiveTokenPanel.jsx";
 import ReplyThread from "../components/ReplyThread.jsx";
-import Icon from "../components/Icon.jsx";
+import Icon, { XIcon, TelegramIcon, DiscordIcon } from "../components/Icon.jsx";
 
 const CHAIN_LABELS = Object.fromEntries(CHAIN_OPTIONS.map((c) => [c.id, c.label]));
 
@@ -29,6 +29,70 @@ export default function Community() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editChain, setEditChain] = useState("solana");
+  const [editAddress, setEditAddress] = useState("");
+  const [editLookup, setEditLookup] = useState({ status: "idle", data: null });
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState("");
+
+  const openEdit = () => {
+    setEditChain(community.chain || "solana");
+    setEditAddress(community.contract_address || "");
+    setEditLookup({ status: "idle", data: null });
+    setEditError("");
+    setEditOpen(true);
+    setMenuOpen(false);
+  };
+
+  useEffect(() => {
+    if (!editOpen) return;
+    const address = editAddress.trim();
+    if (!address) {
+      setEditLookup({ status: "idle", data: null });
+      return;
+    }
+    setEditLookup({ status: "loading", data: null });
+    const timer = setTimeout(async () => {
+      try {
+        const info = await fetchTokenInfo(address, editChain);
+        setEditLookup(info ? { status: "found", data: info } : { status: "not-found", data: null });
+      } catch {
+        setEditLookup({ status: "error", data: null });
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [editAddress, editChain, editOpen]);
+
+  const handleSaveEdit = async () => {
+    setEditSaving(true);
+    setEditError("");
+    const payload = {
+      chain: editChain,
+      contract_address: editAddress.trim() || null,
+    };
+    if (editLookup.status === "found" && editLookup.data) {
+      payload.logo = editLookup.data.logo || community.logo;
+      payload.market_cap = editLookup.data.marketCap ?? community.market_cap;
+      payload.website = editLookup.data.website;
+      payload.twitter = editLookup.data.twitter;
+      payload.telegram = editLookup.data.telegram;
+      payload.discord = editLookup.data.discord;
+    }
+    const { data, error } = await supabase
+      .from("communities")
+      .update(payload)
+      .eq("id", community.id)
+      .select()
+      .single();
+    setEditSaving(false);
+    if (error) {
+      setEditError(error.message);
+      return;
+    }
+    setCommunity(data);
+    setEditOpen(false);
+  };
 
   const loadCommunity = useCallback(async () => {
     const { data, error } = await supabase.from("communities").select("*").eq("slug", slug).maybeSingle();
@@ -204,6 +268,10 @@ export default function Community() {
               </button>
               {community.owner_id === user?.id && (
                 <>
+                  <button onClick={openEdit}>
+                    <Icon name="edit" />
+                    Edit community
+                  </button>
                   <hr />
                   <button className="danger" onClick={handleDeleteCommunity} disabled={deleting}>
                     <Icon name="trash" />
@@ -272,27 +340,29 @@ export default function Community() {
         <div>
           <h3>About</h3>
           <p>{community.description}</p>
-        </div>
-        <div className="linkGrid">
-          {community.website && (
-            <a href={community.website} target="_blank" rel="noreferrer">
-              Website
-            </a>
-          )}
-          {community.twitter && (
-            <a href={community.twitter} target="_blank" rel="noreferrer">
-              Twitter
-            </a>
-          )}
-          {community.telegram && (
-            <a href={community.telegram} target="_blank" rel="noreferrer">
-              Telegram
-            </a>
-          )}
-          {community.discord && (
-            <a href={community.discord} target="_blank" rel="noreferrer">
-              Discord
-            </a>
+          {(community.website || community.twitter || community.telegram || community.discord) && (
+            <div className="socialIcons">
+              {community.website && (
+                <a href={community.website} target="_blank" rel="noreferrer" aria-label="Website" title="Website">
+                  <Icon name="link" />
+                </a>
+              )}
+              {community.twitter && (
+                <a href={community.twitter} target="_blank" rel="noreferrer" aria-label="X" title="X">
+                  <XIcon />
+                </a>
+              )}
+              {community.telegram && (
+                <a href={community.telegram} target="_blank" rel="noreferrer" aria-label="Telegram" title="Telegram">
+                  <TelegramIcon />
+                </a>
+              )}
+              {community.discord && (
+                <a href={community.discord} target="_blank" rel="noreferrer" aria-label="Discord" title="Discord">
+                  <DiscordIcon />
+                </a>
+              )}
+            </div>
           )}
         </div>
         {community.rules?.length > 0 && (
@@ -306,6 +376,71 @@ export default function Community() {
           </div>
         )}
       </div>
+
+      {editOpen && (
+        <div className="modalOverlay" onClick={() => setEditOpen(false)}>
+          <div className="glassPanel modalCard" onClick={(e) => e.stopPropagation()}>
+            <h3>Edit community</h3>
+            <p className="muted" style={{ marginTop: 4 }}>
+              Update the contract address (and chain, if it changed). Website and social links refresh automatically from DexScreener.
+            </p>
+            <div className="formGrid" style={{ marginTop: 16 }}>
+              <label>
+                Chain
+                <select value={editChain} onChange={(e) => setEditChain(e.target.value)}>
+                  {CHAIN_OPTIONS.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="wideField">
+                Contract address
+                <input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="Paste the token's contract address" />
+              </label>
+            </div>
+
+            {editLookup.status === "loading" && <p className="inlineNotice">Looking up token info on DexScreener...</p>}
+            {editLookup.status === "not-found" && (
+              <p className="inlineNotice">No DexScreener data found for that address yet — you can still save it and fill this in later.</p>
+            )}
+            {editLookup.status === "error" && <p className="inlineNotice">Couldn't reach DexScreener — you can still save.</p>}
+            {editLookup.status === "found" && editLookup.data && (
+              <div className="tokenPreview">
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  {editLookup.data.logo ? (
+                    <img src={editLookup.data.logo} alt="" style={{ width: 40, height: 40, borderRadius: 8 }} />
+                  ) : (
+                    <div className="avatar">{(editLookup.data.symbol || "?").slice(0, 1)}</div>
+                  )}
+                  <div>
+                    <strong>{editLookup.data.name}</strong>
+                    <br />
+                    <span className="symbol">{editLookup.data.symbol ? `$${editLookup.data.symbol}` : ""}</span>
+                  </div>
+                </div>
+                <div>
+                  <span className="muted">Market cap</span>
+                  <br />
+                  <strong>{editLookup.data.marketCap ? `$${Number(editLookup.data.marketCap).toLocaleString()}` : "—"}</strong>
+                </div>
+              </div>
+            )}
+
+            {editError && <p className="inlineNotice">{editError}</p>}
+
+            <div className="createActions" style={{ marginTop: 16 }}>
+              <button className="button primary" onClick={handleSaveEdit} disabled={editSaving}>
+                {editSaving ? "Saving..." : "Save changes"}
+              </button>
+              <button className="button ghost" onClick={() => setEditOpen(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isMember ? (
         <div className="composer glassPanel">
