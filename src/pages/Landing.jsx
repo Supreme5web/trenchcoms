@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { isSupabaseConfigured, supabase } from "../lib/supabase.js";
 import Icon, { GoogleIcon, XIcon } from "../components/Icon.jsx";
+import LiveMarketCap from "../components/LiveMarketCap.jsx";
 
 const FEATURES = [
   {
@@ -43,7 +44,7 @@ export default function Landing() {
       });
     supabase
       .from("communities")
-      .select("id, name, slug, symbol, description, market_cap, verified, logo")
+      .select("id, name, slug, symbol, description, market_cap, verified, logo, chain, contract_address")
       .order("created_at", { ascending: false })
       .limit(6)
       .then(({ data, error }) => {
@@ -176,7 +177,7 @@ export default function Landing() {
                   <p>{c.description}</p>
                   <div className="metricRow">
                     <span>Market cap</span>
-                    <strong>{c.market_cap ? `$${Number(c.market_cap).toLocaleString()}` : "Not listed"}</strong>
+                    <strong><LiveMarketCap contractAddress={c.contract_address} chain={c.chain} fallback={c.market_cap} /></strong>
                   </div>
                 </div>
               ))}

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import { CHAIN_OPTIONS } from "../lib/dexscreener.js";
 import Icon from "../components/Icon.jsx";
+import LiveMarketCap from "../components/LiveMarketCap.jsx";
 
 const TABS = ["Trending", "New", "Verified"];
 const CHAIN_LABELS = Object.fromEntries(CHAIN_OPTIONS.map((c) => [c.id, c.label]));
@@ -17,7 +18,7 @@ export default function Explore() {
   useEffect(() => {
     let request = supabase
       .from("communities")
-      .select("id, name, slug, symbol, description, chain, market_cap, verified, created_at");
+      .select("id, name, slug, symbol, description, chain, contract_address, market_cap, verified, created_at");
 
     if (tab === "Trending") request = request.order("market_cap", { ascending: false, nullsFirst: false });
     if (tab === "New") request = request.order("created_at", { ascending: false });
@@ -71,7 +72,7 @@ export default function Explore() {
             <p>{c.description}</p>
             <div className="metricRow">
               <span>Market cap</span>
-              <strong>{c.market_cap ? `$${Number(c.market_cap).toLocaleString()}` : "—"}</strong>
+              <strong><LiveMarketCap contractAddress={c.contract_address} chain={c.chain} fallback={c.market_cap} /></strong>
             </div>
           </div>
         ))}
