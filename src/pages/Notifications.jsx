@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabase.js";
 
 export default function Notifications() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,6 +28,11 @@ export default function Notifications() {
     setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n)));
   };
 
+  const handleOpen = (n) => {
+    if (!n.read_at) markRead(n.id);
+    if (n.link) navigate(n.link);
+  };
+
   return (
     <div className="pageStack">
       <div className="pageHeader">
@@ -35,10 +42,21 @@ export default function Notifications() {
 
       <div className="feedStack">
         {items.map((n) => (
-          <div className="notification glassPanel" key={n.id} style={{ opacity: n.read_at ? 0.6 : 1 }}>
+          <div
+            className="notification glassPanel"
+            key={n.id}
+            style={{ opacity: n.read_at ? 0.6 : 1, cursor: n.link ? "pointer" : "default" }}
+            onClick={() => handleOpen(n)}
+          >
             <span>{n.body}</span>
             {!n.read_at && (
-              <button className="button small" onClick={() => markRead(n.id)}>
+              <button
+                className="button small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  markRead(n.id);
+                }}
+              >
                 Mark read
               </button>
             )}

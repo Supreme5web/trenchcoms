@@ -4,8 +4,6 @@ import { supabase } from "../lib/supabase.js";
 
 export default function Settings() {
   const { profile, refreshProfile, signOut } = useAuth();
-  const [displayName, setDisplayName] = useState(profile?.display_name || "");
-  const [username, setUsername] = useState(profile?.username || "");
   const [bio, setBio] = useState(profile?.bio || "");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -19,7 +17,7 @@ export default function Settings() {
 
     const { error: updateError } = await supabase
       .from("profiles")
-      .update({ display_name: displayName.trim(), username: username.trim(), bio: bio.trim() })
+      .update({ bio: bio.trim() })
       .eq("id", profile.id);
 
     setSaving(false);
@@ -42,12 +40,15 @@ export default function Settings() {
         <div className="profileGrid">
           <label>
             Display name
-            <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
+            <input value={profile?.display_name || ""} disabled />
           </label>
           <label>
             Username
-            <input value={username} onChange={(e) => setUsername(e.target.value)} required />
+            <input value={`@${profile?.username || ""}`} disabled />
           </label>
+          <p className="inlineNotice wideField" style={{ margin: 0 }}>
+            Your name and username are synced from your Google or X account and can't be edited here.
+          </p>
           <label className="wideField">
             Bio
             <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell people about yourself" />

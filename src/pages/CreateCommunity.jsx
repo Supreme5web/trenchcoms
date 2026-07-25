@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabase.js";
-import { fetchTokenInfo } from "../lib/dexscreener.js";
+import { fetchTokenInfo, CHAIN_OPTIONS } from "../lib/dexscreener.js";
 import { uploadImage } from "../lib/storage.js";
 
 function slugify(name) {
@@ -22,6 +22,7 @@ export default function CreateCommunity() {
     name: "",
     symbol: "",
     description: "",
+    chain: "solana",
     contract_address: "",
     website: "",
     twitter: "",
@@ -63,7 +64,7 @@ export default function CreateCommunity() {
     setLookup({ status: "loading", data: null });
     const timer = setTimeout(async () => {
       try {
-        const info = await fetchTokenInfo(address);
+        const info = await fetchTokenInfo(address, form.chain);
         if (!info) {
           setLookup({ status: "not-found", data: null });
           return;
@@ -79,7 +80,7 @@ export default function CreateCommunity() {
       }
     }, 600);
     return () => clearTimeout(timer);
-  }, [form.contract_address]);
+  }, [form.contract_address, form.chain]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -111,6 +112,7 @@ export default function CreateCommunity() {
         slug,
         symbol: form.symbol.trim() || null,
         description: form.description.trim(),
+        chain: form.chain,
         contract_address: form.contract_address.trim() || null,
         website: form.website.trim() || null,
         twitter: form.twitter.trim() || null,
@@ -156,6 +158,16 @@ export default function CreateCommunity() {
             Symbol
             <input value={form.symbol} onChange={update("symbol")} placeholder="Token symbol" />
           </label>
+          <label>
+            Chain
+            <select value={form.chain} onChange={update("chain")}>
+              {CHAIN_OPTIONS.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="wideField">
             Description
             <textarea
@@ -167,7 +179,7 @@ export default function CreateCommunity() {
           </label>
           <label className="wideField">
             Contract address
-            <input value={form.contract_address} onChange={update("contract_address")} placeholder="Optional — paste a Solana token address" />
+            <input value={form.contract_address} onChange={update("contract_address")} placeholder="Paste the token's contract address" />
           </label>
           <label>
             Website

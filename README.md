@@ -17,7 +17,7 @@ Production Vite + React app for token-community social spaces powered by Supabas
    VITE_SUPABASE_ANON_KEY=...
    ```
 
-3. Run `schema.sql` in the Supabase SQL editor, then `profile-trigger.sql`, then `storage-setup.sql` (creates the public `media` storage bucket used for community banners/logos and post photos). If you already have a project running the old schema, also run `migrations/2026-07-24-post-images.sql`.
+3. Run `schema.sql` in the Supabase SQL editor, then `profile-trigger.sql`, then `notifications-trigger.sql`, then `storage-setup.sql` (creates the public `media` storage bucket used for community banners/logos and post photos). If you already have a project running an older schema, also run everything under `migrations/` in filename order.
 
 4. Start locally:
 

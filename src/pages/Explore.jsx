@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
+import { CHAIN_OPTIONS } from "../lib/dexscreener.js";
 import Icon from "../components/Icon.jsx";
 
 const TABS = ["Trending", "New", "Verified"];
+const CHAIN_LABELS = Object.fromEntries(CHAIN_OPTIONS.map((c) => [c.id, c.label]));
 
 export default function Explore() {
   const [tab, setTab] = useState("Trending");
@@ -15,7 +17,7 @@ export default function Explore() {
   useEffect(() => {
     let request = supabase
       .from("communities")
-      .select("id, name, slug, symbol, description, market_cap, verified, created_at");
+      .select("id, name, slug, symbol, description, chain, market_cap, verified, created_at");
 
     if (tab === "Trending") request = request.order("market_cap", { ascending: false, nullsFirst: false });
     if (tab === "New") request = request.order("created_at", { ascending: false });
@@ -65,6 +67,7 @@ export default function Explore() {
               {c.name} {c.verified && <span className="verified"><Icon name="check" /></span>}
             </div>
             <span className="symbol">{c.symbol ? `$${c.symbol}` : ""}</span>
+            <span className="chainTag">{CHAIN_LABELS[c.chain] || c.chain}</span>
             <p>{c.description}</p>
             <div className="metricRow">
               <span>Market cap</span>

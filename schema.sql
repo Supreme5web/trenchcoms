@@ -21,6 +21,7 @@ create table if not exists public.communities (
   slug text not null unique check (slug ~ '^[a-z0-9-]{2,60}$'),
   symbol text,
   description text not null check (char_length(description) between 1 and 500),
+  chain text not null default 'solana' check (chain in ('solana', 'ethereum', 'bsc', 'robinhood')),
   contract_address text,
   website text,
   twitter text,
@@ -73,6 +74,7 @@ create table if not exists public.notifications (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references public.profiles(id) on delete cascade,
   body text not null check (char_length(body) between 1 and 240),
+  link text,
   read_at timestamptz,
   created_at timestamptz not null default now()
 );
@@ -97,6 +99,7 @@ drop policy if exists "Users can insert their own profile" on public.profiles;
 drop policy if exists "Communities are visible to everyone" on public.communities;
 drop policy if exists "Authenticated users can create communities" on public.communities;
 drop policy if exists "Owners can update communities" on public.communities;
+drop policy if exists "Owners can delete communities" on public.communities;
 drop policy if exists "Community members are visible to authenticated users" on public.community_members;
 drop policy if exists "Authenticated users can join communities" on public.community_members;
 drop policy if exists "Members can leave communities" on public.community_members;
@@ -137,6 +140,10 @@ create policy "Owners can update communities"
   on public.communities for update
   using (auth.uid() = owner_id)
   with check (auth.uid() = owner_id);
+
+create policy "Owners can delete communities"
+  on public.communities for delete
+  using (auth.uid() = owner_id);
 
 create policy "Community members are visible to authenticated users"
   on public.community_members for select

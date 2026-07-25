@@ -50,3 +50,23 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Usernames are the account's permanent identity (used in profile URLs) and
+-- should never change after signup — enforced here so it holds even if
+-- someone bypasses the app UI and calls the API directly.
+create or replace function public.prevent_username_change()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.username <> old.username then
+    raise exception 'username cannot be changed once set';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists lock_username on public.profiles;
+create trigger lock_username
+  before update on public.profiles
+  for each row execute procedure public.prevent_username_change();

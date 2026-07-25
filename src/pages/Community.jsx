@@ -1,14 +1,18 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useParams, Navigate } from "react-router-dom";
+import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabase.js";
 import { uploadImage } from "../lib/storage.js";
+import { CHAIN_OPTIONS } from "../lib/dexscreener.js";
 import LiveTokenPanel from "../components/LiveTokenPanel.jsx";
 import ReplyThread from "../components/ReplyThread.jsx";
 import Icon from "../components/Icon.jsx";
 
+const CHAIN_LABELS = Object.fromEntries(CHAIN_OPTIONS.map((c) => [c.id, c.label]));
+
 export default function Community() {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const { user, profile } = useAuth();
   const [community, setCommunity] = useState(null);
   const [membership, setMembership] = useState(null);
@@ -22,6 +26,9 @@ export default function Community() {
   const [loading, setLoading] = useState(true);
   const [memberCount, setMemberCount] = useState(null);
   const [openThread, setOpenThread] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const loadCommunity = useCallback(async () => {
     const { data, error } = await supabase.from("communities").select("*").eq("slug", slug).maybeSingle();
@@ -147,6 +154,30 @@ export default function Community() {
     }
   };
 
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch (err) {
+      // Clipboard API can be blocked (e.g. no HTTPS, permissions) — fail quietly.
+    }
+    setMenuOpen(false);
+  };
+
+  const handleDeleteCommunity = async () => {
+    if (!community) return;
+    if (!window.confirm(`Delete "${community.name}" permanently? This removes all posts, members, and comments. This can't be undone.`)) {
+      return;
+    }
+    setDeleting(true);
+    const { error } = await supabase.from("communities").delete().eq("id", community.id);
+    setDeleting(false);
+    if (!error) {
+      navigate("/app/explore", { replace: true });
+    }
+  };
+
   if (notFound) return <Navigate to="/app/explore" replace />;
   if (loading || !community)
     return (
@@ -161,12 +192,34 @@ export default function Community() {
   return (
     <div className="pageStack">
       <div className="communityHero glassPanel">
+        <div className="headerMenu communityMenu">
+          <button className="dotsButton" onClick={() => setMenuOpen((v) => !v)} aria-label="Community options">
+            <Icon name="dots" filled />
+          </button>
+          {menuOpen && (
+            <div className="dropdownMenu" onMouseLeave={() => setMenuOpen(false)}>
+              <button onClick={handleCopyLink}>
+                <Icon name="link" />
+                {copied ? "Link copied" : "Copy link"}
+              </button>
+              {community.owner_id === user?.id && (
+                <>
+                  <hr />
+                  <button className="danger" onClick={handleDeleteCommunity} disabled={deleting}>
+                    <Icon name="trash" />
+                    {deleting ? "Deleting..." : "Delete community"}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
         <div
           className="banner"
           style={
             community.banner
               ? { backgroundImage: `url(${community.banner})`, backgroundSize: "cover" }
-              : { background: "linear-gradient(120deg, rgba(139,92,246,.35), rgba(139,92,246,.08))" }
+              : { background: "linear-gradient(120deg, rgba(255,90,31,.35), rgba(255,176,32,.08))" }
           }
         />
         <div className="communityHeroBody">
@@ -179,6 +232,7 @@ export default function Community() {
                 {community.name} {community.verified && <span className="verified"><Icon name="check" /></span>}
               </h1>
               <span className="symbol">{community.symbol ? `$${community.symbol}` : ""}</span>
+              <span className="chainTag">{CHAIN_LABELS[community.chain] || community.chain}</span>
             </div>
           </div>
           {user &&
@@ -201,7 +255,7 @@ export default function Community() {
         </div>
       )}
 
-      <LiveTokenPanel contractAddress={community.contract_address} />
+      <LiveTokenPanel contractAddress={community.contract_address} chain={community.chain} />
 
       <div className="tokenStats">
         <div className="stat glassPanel">
