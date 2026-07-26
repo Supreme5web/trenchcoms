@@ -16,11 +16,19 @@ export const CHAIN_OPTIONS = [
   { id: "robinhood", label: "Robinhood Chain" },
 ];
 
-// A token can have many pairs across different DEXs/pools — pick the one
-// with the deepest liquidity, since that's the most reliable price source.
+// A token can have many pairs across different DEXs/pools. Liquidity depth
+// alone isn't a reliable signal — a token that migrated pools (e.g. a
+// pump.fun bonding curve moving to Raydium, or relaunched liquidity) can
+// leave an old, untraded pool sitting there with locked/high liquidity but
+// a frozen, stale price. 24h volume is a much better signal of which pool
+// is actually the live, currently-traded one; liquidity is only used as a
+// tiebreaker/fallback for brand-new pools that don't have volume history yet.
 function pickBestPair(pairs) {
   if (!Array.isArray(pairs) || pairs.length === 0) return null;
   return pairs.reduce((best, pair) => {
+    const volume = pair?.volume?.h24 || 0;
+    const bestVolume = best?.volume?.h24 || 0;
+    if (volume !== bestVolume) return volume > bestVolume ? pair : best;
     const liquidity = pair?.liquidity?.usd || 0;
     const bestLiquidity = best?.liquidity?.usd || 0;
     return liquidity > bestLiquidity ? pair : best;
@@ -28,7 +36,9 @@ function pickBestPair(pairs) {
 }
 
 async function fetchPairsForToken(chainId, tokenAddress) {
-  const res = await fetch(`${DEXSCREENER_BASE}/tokens/v1/${chainId}/${tokenAddress}`);
+  // cache: "no-store" defeats browser HTTP caching so polling every 30s
+  // actually hits the network instead of replaying a stale cached response.
+  const res = await fetch(`${DEXSCREENER_BASE}/tokens/v1/${chainId}/${tokenAddress}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`DexScreener request failed (${res.status})`);
   const data = await res.json();
   return Array.isArray(data) ? data : [];
