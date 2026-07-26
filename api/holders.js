@@ -1,58 +1,40 @@
-const NETWORK_IDS = {
-  solana: 1399811149,
-  ethereum: 1,
-  bsc: 56,
-  robinhood: 4663,
-};
-
+// Holder counts via RugCheck (Solana-only — no EVM equivalent here).
+// RugCheck's exact field name for total holder count isn't nailed down from
+// public docs, so this tries the most likely field names and logs the raw
+// response keys server-side (visible in Vercel's Functions logs) so we can
+// correct it fast if the field name turns out to be different.
 export default async function handler(req, res) {
   const { address, chain } = req.query;
-  const networkId = NETWORK_IDS[chain];
 
-  if (!address || !networkId) {
-    return res
-      .status(400)
-      .json({ error: "Missing or unsupported address/chain" });
+  if (!address || chain !== "solana") {
+    return res.status(200).json({ holders: null });
   }
-
-  const apiKey = process.env.CODEX_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({
-      error:
-        "CODEX_API_KEY is not set in the Vercel project's environment variables",
-    });
-  }
-
-  const tokenId = `${address}:${networkId}`;
-  const query = `
-    query TokenHolders($tokens: [String!], $limit: Int) {
-      filterTokens(input: { tokens: $tokens, limit: $limit }) {
-        results { holders }
-      }
-    }
-  `;
 
   try {
-    const response = await fetch("https://graph.codex.io/graphql", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: apiKey },
-      body: JSON.stringify({
-        query,
-        variables: { tokens: [tokenId], limit: 1 },
-      }),
+    const response = await fetch(`https://api.rugcheck.xyz/v1/tokens/${address}/report`, {
+      headers: { accept: "application/json" },
     });
-    const json = await response.json();
 
-    if (json.errors) {
-      console.error("Codex error:", json.errors);
-      return res
-        .status(502)
-        .json({ error: json.errors[0]?.message || "Codex API error" });
+    if (!response.ok) {
+      console.error("RugCheck request failed:", response.status);
+      return res.status(200).json({ holders: null });
     }
 
-    const holders = json.data?.filterTokens?.results?.[0]?.holders ?? null;
+    const json = await response.json();
+    console.log("RugCheck response keys:", Object.keys(json));
+
+    const holders =
+      typeof json.totalHolders === "number"
+        ? json.totalHolders
+        : typeof json.holders === "number"
+        ? json.holders
+        : Array.isArray(json.topHolders)
+        ? json.topHolders.length
+        : null;
+
     return res.status(200).json({ holders });
   } catch (err) {
-    return res.status(502).json({ error: err.message });
+    console.error("RugCheck fetch error:", err.message);
+    return res.status(200).json({ holders: null });
   }
 }
