@@ -28,11 +28,15 @@ export default function AppShell() {
     let active = true;
 
     const loadUnread = async () => {
-      const { count } = await supabase
+      const { count, error } = await supabase
         .from("notifications")
         .select("id", { count: "exact", head: true })
         .eq("profile_id", user.id)
         .is("read_at", null);
+      if (error) {
+        console.error("Unread notification count failed:", error);
+        return;
+      }
       if (active) setUnreadCount(count || 0);
     };
 
@@ -60,7 +64,13 @@ export default function AppShell() {
   }, []);
 
   if (loading || !user) {
-    return <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>Loading TrenchComs...</div>;
+    return (
+      <div
+        style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}
+      >
+        Loading TrenchComs...
+      </div>
+    );
   }
 
   return (
@@ -78,12 +88,16 @@ export default function AppShell() {
               key={item.to}
               to={item.to}
               end={item.end}
-              className={({ isActive }) => `navItem${isActive ? " active" : ""}`}
+              className={({ isActive }) =>
+                `navItem${isActive ? " active" : ""}`
+              }
             >
               <span className="navIconWrap">
                 <Icon name={item.icon} />
                 {item.to === "/app/notifications" && unreadCount > 0 && (
-                  <span className="navBadge">{unreadCount > 99 ? "99+" : unreadCount}</span>
+                  <span className="navBadge">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
                 )}
               </span>
               <span>{item.label}</span>
@@ -132,7 +146,11 @@ export default function AppShell() {
               style={{ cursor: "pointer" }}
             >
               <div className="avatar">
-                {c.logo ? <img src={c.logo} alt="" /> : c.name.slice(0, 1).toUpperCase()}
+                {c.logo ? (
+                  <img src={c.logo} alt="" />
+                ) : (
+                  c.name.slice(0, 1).toUpperCase()
+                )}
               </div>
               <div>
                 <strong>{c.name}</strong>
@@ -140,7 +158,9 @@ export default function AppShell() {
               </div>
             </div>
           ))}
-          {trending.length === 0 && <p className="muted">No communities yet.</p>}
+          {trending.length === 0 && (
+            <p className="muted">No communities yet.</p>
+          )}
         </div>
       </aside>
     </div>
