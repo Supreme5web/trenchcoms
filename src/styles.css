@@ -186,6 +186,23 @@ p { margin: 0; }
 .navItem:hover { background: var(--bg-hover); }
 .navItem.active { font-weight: 800; color: var(--accent); }
 .navItem span:first-child { display: inline-flex; }
+.navIconWrap { position: relative; display: inline-flex; }
+.navBadge {
+  position: absolute;
+  top: -6px;
+  right: -9px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-gradient);
+  color: #0c0704;
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
 
 .centerStage {
   border-left: 1px solid var(--border);

@@ -17,10 +17,32 @@ export default function AppShell() {
   const { user, profile, signOut, loading } = useAuth();
   const navigate = useNavigate();
   const [trending, setTrending] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (!loading && !user) navigate("/", { replace: true });
   }, [loading, user, navigate]);
+
+  useEffect(() => {
+    if (!user) return undefined;
+    let active = true;
+
+    const loadUnread = async () => {
+      const { count } = await supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("profile_id", user.id)
+        .is("read_at", null);
+      if (active) setUnreadCount(count || 0);
+    };
+
+    loadUnread();
+    const interval = setInterval(loadUnread, 20000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [user]);
 
   useEffect(() => {
     let active = true;
@@ -58,7 +80,12 @@ export default function AppShell() {
               end={item.end}
               className={({ isActive }) => `navItem${isActive ? " active" : ""}`}
             >
-              <span><Icon name={item.icon} /></span>
+              <span className="navIconWrap">
+                <Icon name={item.icon} />
+                {item.to === "/app/notifications" && unreadCount > 0 && (
+                  <span className="navBadge">{unreadCount > 99 ? "99+" : unreadCount}</span>
+                )}
+              </span>
               <span>{item.label}</span>
             </NavLink>
           ))}
