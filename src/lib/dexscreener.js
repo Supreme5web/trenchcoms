@@ -127,20 +127,41 @@ export async function fetchSolPrice() {
  * order on DexScreener. Solana-only, per DexScreener's own paid-listing
  * product — there's no equivalent signal to check on other chains here.
  * Returns "Dex Paid" or "Dex Not Paid" for direct UI display.
- * 
- * DEBUG: Keep console.log until you confirm the real order type field
- * by comparing a known Dex Paid token vs a known non-paid token.
  */
 export async function fetchDexPaidStatus(tokenAddress) {
-  if (!tokenAddress) return "Dex Not Paid";
+  console.log("🔍 fetchDexPaidStatus called with:", tokenAddress);
+  
+  if (!tokenAddress) {
+    console.log("❌ No token address, returning Dex Not Paid");
+    return "Dex Not Paid";
+  }
   
   try {
-    const res = await fetch(`${DEXSCREENER_BASE}/orders/v1/solana/${tokenAddress.trim()}`);
-    if (!res.ok) return false;
+    const url = `${DEXSCREENER_BASE}/orders/v1/solana/${tokenAddress.trim()}`;
+    console.log("📡 Fetching:", url);
+    
+    const res = await fetch(url);
+    console.log("📥 Response status:", res.status);
+    
+    if (!res.ok) {
+      console.log("❌ Response not OK, returning false");
+      return false;
+    }
+    
     const orders = await res.json();
-    if (!Array.isArray(orders)) return false;
-    return orders.some((order) => order.status === "approved");
-  } catch {
+    console.log("📦 Orders data:", orders);
+    
+    if (!Array.isArray(orders)) {
+      console.log("❌ Orders is not an array, returning false");
+      return false;
+    }
+    
+    const hasApproved = orders.some((order) => order.status === "approved");
+    console.log("✅ Has approved order:", hasApproved);
+    
+    return hasApproved;
+  } catch (err) {
+    console.log("💥 Error:", err.message);
     return false;
   }
-} 
+}
