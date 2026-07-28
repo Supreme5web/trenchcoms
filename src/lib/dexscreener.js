@@ -139,11 +139,36 @@ export async function fetchDexPaidStatus(tokenAddress) {
     }
     
     const data = await res.json();
-    // DexScreener returns { orders: [...], boosts: [...] }, not a bare array.
-    const orders = Array.isArray(data) ? data : data?.orders || [];
-    const hasApproved = orders.some((order) => order.status === "approved");
+    console.log("DexScreener orders response for", tokenAddress, ":", JSON.stringify(data, null, 2));
     
-    return hasApproved ? "Dex Paid" : "Dex Not Paid";
+    // Check multiple possible response structures
+    let orders = [];
+    if (Array.isArray(data)) {
+      orders = data;
+    } else if (data?.orders && Array.isArray(data.orders)) {
+      orders = data.orders;
+    }
+    
+    // More specific check: only count it as "Dex Paid" if we find an approved order
+    // that's specifically for "Enhanced Token Info" type
+    const hasApprovedOrder = orders.some((order) => {
+      const isApproved = order.status === "approved";
+      const isEnhancedTokenInfo = order.type === "tokenInfo" || order.type === "enhancedTokenInfo";
+      
+      console.log("Order check:", { 
+        status: order.status, 
+        type: order.type, 
+        isApproved, 
+        isEnhancedTokenInfo,
+        fullOrder: order 
+      });
+      
+      // Only return true if it's both approved AND for token info
+      return isApproved && (isEnhancedTokenInfo || !order.type); // Some might not have type field
+    });
+    
+    console.log("Final decision:", hasApprovedOrder ? "Dex Paid" : "Dex Not Paid");
+    return hasApprovedOrder ? "Dex Paid" : "Dex Not Paid";
     
   } catch (err) {
     console.warn("DexScreener orders fetch error:", err.message);
