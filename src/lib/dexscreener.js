@@ -127,6 +127,9 @@ export async function fetchSolPrice() {
  * order on DexScreener. Solana-only, per DexScreener's own paid-listing
  * product — there's no equivalent signal to check on other chains here.
  * Returns "Dex Paid" or "Dex Not Paid" for direct UI display.
+ * 
+ * DEBUG: Keep console.log until you confirm the real order type field
+ * by comparing a known Dex Paid token vs a known non-paid token.
  */
 export async function fetchDexPaidStatus(tokenAddress) {
   if (!tokenAddress) return "Dex Not Paid";
@@ -139,9 +142,11 @@ export async function fetchDexPaidStatus(tokenAddress) {
     }
     
     const data = await res.json();
+    
+    // DEBUG: Log the full response to identify the real fields
     console.log("DexScreener orders response for", tokenAddress, ":", JSON.stringify(data, null, 2));
     
-    // Check multiple possible response structures
+    // Parse orders from response
     let orders = [];
     if (Array.isArray(data)) {
       orders = data;
@@ -149,11 +154,13 @@ export async function fetchDexPaidStatus(tokenAddress) {
       orders = data.orders;
     }
     
-    // More specific check: only count it as "Dex Paid" if we find an approved order
-    // that's specifically for "Enhanced Token Info" type
+    // Only mark as "Dex Paid" if we find an approved order specifically for token info
+    // Removed the dangerous || !order.type fallback that was causing false positives
     const hasApprovedOrder = orders.some((order) => {
       const isApproved = order.status === "approved";
-      const isEnhancedTokenInfo = order.type === "tokenInfo" || order.type === "enhancedTokenInfo";
+      const isEnhancedTokenInfo = 
+        order.type === "tokenInfo" || 
+        order.type === "enhancedTokenInfo";
       
       console.log("Order check:", { 
         status: order.status, 
@@ -163,8 +170,8 @@ export async function fetchDexPaidStatus(tokenAddress) {
         fullOrder: order 
       });
       
-      // Only return true if it's both approved AND for token info
-      return isApproved && (isEnhancedTokenInfo || !order.type); // Some might not have type field
+      // Only return true if it's BOTH approved AND explicitly for token info
+      return isApproved && isEnhancedTokenInfo;
     });
     
     console.log("Final decision:", hasApprovedOrder ? "Dex Paid" : "Dex Not Paid");
