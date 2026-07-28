@@ -136,7 +136,7 @@ export async function fetchDexPaidStatus(tokenAddress) {
       return false;
     }
     const orders = await res.json();
-    console.log("DexScreener orders for", tokenAddress, ":", orders);
+    console.log("DexScreener orders for", tokenAddress, ":", JSON.stringify(orders, null, 2));
     if (!Array.isArray(orders)) return false;
     return orders.some((order) => order.status === "approved");
   } catch (err) {
