@@ -124,44 +124,28 @@ export async function fetchSolPrice() {
 
 /**
  * Checks whether a token has an approved "Enhanced Token Info" (Dex Paid)
- * order on DexScreener. Solana-only, per DexScreener's own paid-listing
+ * order or boost on DexScreener. Solana-only, per DexScreener's own paid-listing
  * product — there's no equivalent signal to check on other chains here.
- * Returns "Dex Paid" or "Dex Not Paid" for direct UI display.
+ * Returns true if paid, false if not.
  */
 export async function fetchDexPaidStatus(tokenAddress) {
-  console.log("🔍 fetchDexPaidStatus called with:", tokenAddress);
-  
-  if (!tokenAddress) {
-    console.log("❌ No token address, returning Dex Not Paid");
-    return "Dex Not Paid";
-  }
+  if (!tokenAddress) return false;
   
   try {
-    const url = `${DEXSCREENER_BASE}/orders/v1/solana/${tokenAddress.trim()}`;
-    console.log("📡 Fetching:", url);
+    const res = await fetch(`${DEXSCREENER_BASE}/orders/v1/solana/${tokenAddress.trim()}`);
+    if (!res.ok) return false;
     
-    const res = await fetch(url);
-    console.log("📥 Response status:", res.status);
+    const data = await res.json();
     
-    if (!res.ok) {
-      console.log("❌ Response not OK, returning false");
-      return false;
-    }
+    // API returns { orders: [...], boosts: [...] }
+    const orders = data?.orders || [];
+    const boosts = data?.boosts || [];
     
-    const orders = await res.json();
-    console.log("📦 Orders data:", orders);
-    
-    if (!Array.isArray(orders)) {
-      console.log("❌ Orders is not an array, returning false");
-      return false;
-    }
-    
-    const hasApproved = orders.some((order) => order.status === "approved");
-    console.log("✅ Has approved order:", hasApproved);
-    
-    return hasApproved;
-  } catch (err) {
-    console.log("💥 Error:", err.message);
+    // Check both orders and boosts for approved status
+    return orders.some((order) => order.status === "approved") || 
+           boosts.some((boost) => boost.status === "approved");
+           
+  } catch {
     return false;
   }
 }
