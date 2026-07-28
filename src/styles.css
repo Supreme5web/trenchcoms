@@ -918,3 +918,24 @@ p { margin: 0; }
   .authGroup .authButton { padding: 9px; border-radius: 50%; gap: 0; }
   .authGroup .authButton .providerIcon { width: 16px; height: 16px; }
 }
+.dexPaidBadge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--accent);
+  color: white;
+  margin-bottom: 8px;
+}
+
+.dexNotPaidBadge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg-secondary, #2a2a2a);
+  color: var(--text-muted, #888);
+  margin-bottom: 8px;
+}
