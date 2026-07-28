@@ -138,4 +138,4 @@ export async function fetchDexPaidStatus(tokenAddress) {
   } catch {
     return false;
   }
-}
+} 
