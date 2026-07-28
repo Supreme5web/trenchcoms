@@ -126,14 +126,14 @@ export async function fetchSolPrice() {
  * Checks whether a token has an approved "Enhanced Token Info" (Dex Paid)
  * order or boost on DexScreener. Solana-only, per DexScreener's own paid-listing
  * product — there's no equivalent signal to check on other chains here.
- * Returns true if paid, false if not.
+ * Returns "Dex Paid" if the token has paid features, "Dex Not Paid" otherwise.
  */
 export async function fetchDexPaidStatus(tokenAddress) {
-  if (!tokenAddress) return false;
+  if (!tokenAddress) return "Dex Not Paid";
   
   try {
     const res = await fetch(`${DEXSCREENER_BASE}/orders/v1/solana/${tokenAddress.trim()}`);
-    if (!res.ok) return false;
+    if (!res.ok) return "Dex Not Paid";
     
     const data = await res.json();
     
@@ -142,10 +142,12 @@ export async function fetchDexPaidStatus(tokenAddress) {
     const boosts = data?.boosts || [];
     
     // Check both orders and boosts for approved status
-    return orders.some((order) => order.status === "approved") || 
-           boosts.some((boost) => boost.status === "approved");
+    const isPaid = orders.some((order) => order.status === "approved") || 
+                   boosts.some((boost) => boost.status === "approved");
+    
+    return isPaid ? "Dex Paid" : "Dex Not Paid";
            
   } catch {
-    return false;
+    return "Dex Not Paid";
   }
 }
