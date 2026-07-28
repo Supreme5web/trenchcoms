@@ -53,6 +53,42 @@ function pickSocial(socials, type) {
   return socials?.find((s) => s.type === type)?.url || null;
 }
 
+function looksLikeEvmAddress(address) {
+  return /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
+// EVM chains, checked in this priority order. If the same address happens
+// to exist on more than one (rare, but possible with vanity/CREATE2
+// deployments), whichever comes first here wins.
+const EVM_CHAIN_PRIORITY = ["ethereum", "bsc", "robinhood"];
+
+/**
+ * Detects which supported chain a contract address belongs to and returns
+ * both the chain id and the DexScreener token info in one shot, so the
+ * person creating/editing a community never has to manually pick a chain.
+ * EVM-shaped addresses (0x + 40 hex chars) are checked against ethereum,
+ * bsc, and robinhood in turn; anything else is treated as Solana, the only
+ * non-0x chain this app supports.
+ */
+export async function detectTokenInfo(address) {
+  const trimmed = (address || "").trim();
+  if (!trimmed) return { chain: null, info: null };
+
+  if (looksLikeEvmAddress(trimmed)) {
+    const results = await Promise.all(
+      EVM_CHAIN_PRIORITY.map(async (chain) => ({
+        chain,
+        info: await fetchTokenInfo(trimmed, chain).catch(() => null),
+      }))
+    );
+    const match = results.find((r) => r.info);
+    return match || { chain: "ethereum", info: null };
+  }
+
+  const info = await fetchTokenInfo(trimmed, "solana").catch(() => null);
+  return { chain: "solana", info };
+}
+
 export async function fetchTokenInfo(contractAddress, chainId = "solana") {
   if (!contractAddress) return null;
   const pairs = await fetchPairsForToken(chainId, contractAddress.trim());
@@ -72,6 +108,7 @@ export async function fetchTokenInfo(contractAddress, chainId = "solana") {
     priceChange24h: pair.priceChange?.h24 ?? null,
     dexUrl: pair.url || null,
     website: pair.info?.websites?.[0]?.url || null,
+    description: pair.info?.description || null,
     twitter: pickSocial(socials, "twitter"),
     telegram: pickSocial(socials, "telegram"),
     discord: pickSocial(socials, "discord"),
