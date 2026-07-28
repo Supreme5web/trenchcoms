@@ -131,11 +131,16 @@ export async function fetchDexPaidStatus(tokenAddress) {
   if (!tokenAddress) return false;
   try {
     const res = await fetch(`${DEXSCREENER_BASE}/orders/v1/solana/${tokenAddress.trim()}`);
-    if (!res.ok) return false;
+    if (!res.ok) {
+      console.warn("DexScreener orders request failed:", res.status);
+      return false;
+    }
     const orders = await res.json();
+    console.log("DexScreener orders for", tokenAddress, ":", orders);
     if (!Array.isArray(orders)) return false;
     return orders.some((order) => order.status === "approved");
-  } catch {
+  } catch (err) {
+    console.warn("DexScreener orders fetch error:", err.message);
     return false;
   }
-} 
+}
