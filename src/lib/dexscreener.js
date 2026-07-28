@@ -135,9 +135,9 @@ export async function fetchDexPaidStatus(tokenAddress) {
       console.warn("DexScreener orders request failed:", res.status);
       return false;
     }
-    const orders = await res.json();
-    console.log("DexScreener orders for", tokenAddress, ":", JSON.stringify(orders, null, 2));
-    if (!Array.isArray(orders)) return false;
+    const data = await res.json();
+    // DexScreener returns { orders: [...], boosts: [...] }, not a bare array.
+    const orders = Array.isArray(data) ? data : data?.orders || [];
     return orders.some((order) => order.status === "approved");
   } catch (err) {
     console.warn("DexScreener orders fetch error:", err.message);
