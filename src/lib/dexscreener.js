@@ -126,16 +126,59 @@ export async function fetchSolPrice() {
  * Checks whether a token has an approved "Enhanced Token Info" (Dex Paid)
  * order on DexScreener. Solana-only, per DexScreener's own paid-listing
  * product — there's no equivalent signal to check on other chains here.
+ * Returns "Dex Paid" or "Dex Not Paid" for direct UI display.
+ * 
+ * DEBUG: Keep console.log until you confirm the real order type field
+ * by comparing a known Dex Paid token vs a known non-paid token.
  */
 export async function fetchDexPaidStatus(tokenAddress) {
-  if (!tokenAddress) return false;
+  if (!tokenAddress) return "Dex Not Paid";
+  
   try {
     const res = await fetch(`${DEXSCREENER_BASE}/orders/v1/solana/${tokenAddress.trim()}`);
-    if (!res.ok) return false;
-    const orders = await res.json();
-    if (!Array.isArray(orders)) return false;
-    return orders.some((order) => order.status === "approved");
-  } catch {
-    return false;
+    if (!res.ok) {
+      console.warn("DexScreener orders request failed:", res.status);
+      return "Dex Not Paid";
+    }
+    
+    const data = await res.json();
+    
+    // DEBUG: Log the full response to identify the real fields
+    console.log("DexScreener orders response for", tokenAddress, ":", JSON.stringify(data, null, 2));
+    
+    // Parse orders from response
+    let orders = [];
+    if (Array.isArray(data)) {
+      orders = data;
+    } else if (data?.orders && Array.isArray(data.orders)) {
+      orders = data.orders;
+    }
+    
+    // Only mark as "Dex Paid" if we find an approved order specifically for token info
+    // Removed the dangerous || !order.type fallback that was causing false positives
+    const hasApprovedOrder = orders.some((order) => {
+      const isApproved = order.status === "approved";
+      const isEnhancedTokenInfo = 
+        order.type === "tokenInfo" || 
+        order.type === "enhancedTokenInfo";
+      
+      console.log("Order check:", { 
+        status: order.status, 
+        type: order.type, 
+        isApproved, 
+        isEnhancedTokenInfo,
+        fullOrder: order 
+      });
+      
+      // Only return true if it's BOTH approved AND explicitly for token info
+      return isApproved && isEnhancedTokenInfo;
+    });
+    
+    console.log("Final decision:", hasApprovedOrder ? "Dex Paid" : "Dex Not Paid");
+    return hasApprovedOrder ? "Dex Paid" : "Dex Not Paid";
+    
+  } catch (err) {
+    console.warn("DexScreener orders fetch error:", err.message);
+    return "Dex Not Paid";
   }
-} 
+}

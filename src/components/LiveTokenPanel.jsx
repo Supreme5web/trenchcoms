@@ -30,7 +30,7 @@ export default function LiveTokenPanel({ contractAddress, chain = "solana" }) {
   const [solPrice, setSolPrice] = useState(null);
   const [token, setToken] = useState(null);
   const [holders, setHolders] = useState(null);
-  const [dexPaid, setDexPaid] = useState(false);
+  const [dexPaid, setDexPaid] = useState("Dex Not Paid"); // ✅ Initialize as string
   const [status, setStatus] = useState(contractAddress ? "loading" : "empty");
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function LiveTokenPanel({ contractAddress, chain = "solana" }) {
             solPromise,
             fetchTokenInfo(contractAddress, chain),
             fetchHolderCount(chain, contractAddress),
-            chain === "solana" ? fetchDexPaidStatus(contractAddress) : Promise.resolve(false),
+            chain === "solana" ? fetchDexPaidStatus(contractAddress) : Promise.resolve("Dex Not Paid"), // ✅ String fallback
           ]);
           if (cancelled) return;
           setSolPrice(sol);
@@ -101,7 +101,7 @@ export default function LiveTokenPanel({ contractAddress, chain = "solana" }) {
 
       {status === "ready" && token && (
         <>
-          {chain === "solana" && dexPaid && (
+          {chain === "solana" && dexPaid === "Dex Paid" && ( // ✅ Explicit string comparison
             <span className="dexPaidBadge">Dex Paid</span>
           )}
           <div className="tokenStats" style={{ marginTop: 12 }}>
