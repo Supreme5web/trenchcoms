@@ -10,8 +10,6 @@ function formatUsd(value, { compact = false } = {}) {
   if (compact) {
     return `$${Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(value)}`;
   }
-  // Small prices (typical for memecoins) need more decimal precision than
-  // toLocaleString gives by default, or they'd all just show "$0.00".
   const decimals = value < 1 ? 6 : 2;
   return `$${value.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
 }
@@ -21,16 +19,11 @@ function formatCount(value) {
   return Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(value);
 }
 
-/**
- * Shows a native-token price ticker (Solana only) plus this community's
- * token stats (price, market cap, holders, 24h volume, 24h change, and a
- * Dex Paid badge for Solana tokens), refreshing on an interval.
- */
 export default function LiveTokenPanel({ contractAddress, chain = "solana" }) {
   const [solPrice, setSolPrice] = useState(null);
   const [token, setToken] = useState(null);
   const [holders, setHolders] = useState(null);
-  const [dexPaid, setDexPaid] = useState("Dex Not Paid"); // ✅ Initialize as string
+  const [dexPaid, setDexPaid] = useState(false);
   const [status, setStatus] = useState(contractAddress ? "loading" : "empty");
 
   useEffect(() => {
@@ -44,7 +37,7 @@ export default function LiveTokenPanel({ contractAddress, chain = "solana" }) {
             solPromise,
             fetchTokenInfo(contractAddress, chain),
             fetchHolderCount(chain, contractAddress),
-            chain === "solana" ? fetchDexPaidStatus(contractAddress) : Promise.resolve("Dex Not Paid"), // ✅ String fallback
+            chain === "solana" ? fetchDexPaidStatus(contractAddress) : Promise.resolve(false),
           ]);
           if (cancelled) return;
           setSolPrice(sol);
@@ -101,7 +94,7 @@ export default function LiveTokenPanel({ contractAddress, chain = "solana" }) {
 
       {status === "ready" && token && (
         <>
-          {chain === "solana" && dexPaid === "Dex Paid" && ( // ✅ Explicit string comparison
+          {chain === "solana" && dexPaid && (
             <span className="dexPaidBadge">Dex Paid</span>
           )}
           <div className="tokenStats" style={{ marginTop: 12 }}>
