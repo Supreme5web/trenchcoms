@@ -24,7 +24,7 @@ function formatCount(value) {
 /**
  * Shows a native-token price ticker (Solana only) plus this community's
  * token stats (price, market cap, holders, 24h volume, 24h change, and a
- * Dex Paid/Dex Not Paid badge for Solana tokens), refreshing on an interval.
+ * Dex Paid badge for Solana tokens), refreshing on an interval.
  */
 export default function LiveTokenPanel({ contractAddress, chain = "solana" }) {
   const [solPrice, setSolPrice] = useState(null);
@@ -95,9 +95,9 @@ export default function LiveTokenPanel({ contractAddress, chain = "solana" }) {
         <p className="inlineNotice">No contract address set for this community yet — live token stats will appear once one is added.</p>
       )}
       {status === "no-data" && (
-        <p className="inlineNotice">This contract address isn't indexed on DexScreener yet (common for brand-new pools).</p>
+        <p className="inlineNotice">Live token stats aren't available for this contract address yet (common for brand-new pools).</p>
       )}
-      {status === "error" && <p className="inlineNotice">Couldn't reach DexScreener right now — retrying automatically.</p>}
+      {status === "error" && <p className="inlineNotice">Couldn't fetch live token stats right now — retrying automatically.</p>}
 
       {status === "ready" && token && (
         <>

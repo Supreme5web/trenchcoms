@@ -485,6 +485,21 @@ p { margin: 0; }
   border-radius: var(--radius-pill);
 }
 
+.dexNotPaidBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+}
+
 .headerMenu { position: relative; }
 .dotsButton {
   display: inline-flex;
@@ -917,35 +932,4 @@ p { margin: 0; }
   .authGroup .authButton span { display: none; }
   .authGroup .authButton { padding: 9px; border-radius: 50%; gap: 0; }
   .authGroup .authButton .providerIcon { width: 16px; height: 16px; }
-}
-/* Override the existing dexPaidBadge and add dexNotPaidBadge */
-.dexPaidBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #0c0704;
-  background: var(--accent-gradient);
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  margin-bottom: 8px;
-}
-
-.dexNotPaidBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-  background: var(--bg-elevated);
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border);
-  margin-bottom: 8px;
 }

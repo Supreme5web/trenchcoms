@@ -3,7 +3,7 @@ import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { supabase } from "../lib/supabase.js";
 import { uploadImage } from "../lib/storage.js";
-import { CHAIN_OPTIONS, fetchTokenInfo } from "../lib/dexscreener.js";
+import { CHAIN_OPTIONS, detectTokenInfo } from "../lib/dexscreener.js";
 import LiveTokenPanel from "../components/LiveTokenPanel.jsx";
 import ReplyThread from "../components/ReplyThread.jsx";
 import Icon, { XIcon, TelegramIcon, DiscordIcon } from "../components/Icon.jsx";
@@ -55,14 +55,15 @@ export default function Community() {
     setEditLookup({ status: "loading", data: null });
     const timer = setTimeout(async () => {
       try {
-        const info = await fetchTokenInfo(address, editChain);
+        const { chain, info } = await detectTokenInfo(address);
+        if (chain) setEditChain(chain);
         setEditLookup(info ? { status: "found", data: info } : { status: "not-found", data: null });
       } catch {
         setEditLookup({ status: "error", data: null });
       }
     }, 600);
     return () => clearTimeout(timer);
-  }, [editAddress, editChain, editOpen]);
+  }, [editAddress, editOpen]);
 
   const handleSaveEdit = async () => {
     setEditSaving(true);
@@ -78,6 +79,7 @@ export default function Community() {
       payload.twitter = editLookup.data.twitter;
       payload.telegram = editLookup.data.telegram;
       payload.discord = editLookup.data.discord;
+      if (!community.banner && editLookup.data.banner) payload.banner = editLookup.data.banner;
     }
     const { data, error } = await supabase
       .from("communities")
@@ -382,30 +384,25 @@ export default function Community() {
           <div className="glassPanel modalCard" onClick={(e) => e.stopPropagation()}>
             <h3>Edit community</h3>
             <p className="muted" style={{ marginTop: 4 }}>
-              Update the contract address (and chain, if it changed). Website and social links refresh automatically from DexScreener.
+              Update the contract address — chain, logo, banner (if not already set), and social links refresh automatically.
             </p>
             <div className="formGrid" style={{ marginTop: 16 }}>
-              <label>
-                Chain
-                <select value={editChain} onChange={(e) => setEditChain(e.target.value)}>
-                  {CHAIN_OPTIONS.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
               <label className="wideField">
                 Contract address
                 <input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="Paste the token's contract address" />
               </label>
+              {editAddress.trim() && (
+                <p className="muted" style={{ fontSize: 12, margin: 0 }}>
+                  Detected chain: <strong>{CHAIN_LABELS[editChain] || "—"}</strong>
+                </p>
+              )}
             </div>
 
-            {editLookup.status === "loading" && <p className="inlineNotice">Looking up token info on DexScreener...</p>}
+            {editLookup.status === "loading" && <p className="inlineNotice">Looking up token info...</p>}
             {editLookup.status === "not-found" && (
-              <p className="inlineNotice">No DexScreener data found for that address yet — you can still save it and fill this in later.</p>
+              <p className="inlineNotice">No data found for that address yet — you can still save it and fill this in later.</p>
             )}
-            {editLookup.status === "error" && <p className="inlineNotice">Couldn't reach DexScreener — you can still save.</p>}
+            {editLookup.status === "error" && <p className="inlineNotice">Couldn't fetch token data right now — you can still save.</p>}
             {editLookup.status === "found" && editLookup.data && (
               <div className="tokenPreview">
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

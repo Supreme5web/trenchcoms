@@ -49,8 +49,9 @@ async function fetchPairsForToken(chainId, tokenAddress) {
  * Returns null if DexScreener has no pairs indexed for the address yet
  * (common for brand-new tokens with no liquidity pool yet).
  */
-function pickSocial(socials, type) {
-  return socials?.find((s) => s.type === type)?.url || null;
+function pickSocial(socials, kind) {
+  const match = socials?.find((s) => (s.type || s.platform) === kind);
+  return match?.url || match?.handle || null;
 }
 
 function looksLikeEvmAddress(address) {
@@ -109,6 +110,7 @@ export async function fetchTokenInfo(contractAddress, chainId = "solana") {
     dexUrl: pair.url || null,
     website: pair.info?.websites?.[0]?.url || null,
     description: pair.info?.description || null,
+    banner: pair.info?.header || null,
     twitter: pickSocial(socials, "twitter"),
     telegram: pickSocial(socials, "telegram"),
     discord: pickSocial(socials, "discord"),
@@ -130,23 +132,23 @@ export async function fetchSolPrice() {
  */
 export async function fetchDexPaidStatus(tokenAddress) {
   if (!tokenAddress) return "Dex Not Paid";
-  
+
   try {
     const res = await fetch(`${DEXSCREENER_BASE}/orders/v1/solana/${tokenAddress.trim()}`);
     if (!res.ok) return "Dex Not Paid";
-    
+
     const data = await res.json();
-    
+
     // API returns { orders: [...], boosts: [...] }
     const orders = data?.orders || [];
     const boosts = data?.boosts || [];
-    
+
     // Check both orders and boosts for approved status
-    const isPaid = orders.some((order) => order.status === "approved") || 
-                   boosts.some((boost) => boost.status === "approved");
-    
+    const isPaid =
+      orders.some((order) => order.status === "approved") ||
+      boosts.some((boost) => boost.status === "approved");
+
     return isPaid ? "Dex Paid" : "Dex Not Paid";
-           
   } catch {
     return "Dex Not Paid";
   }

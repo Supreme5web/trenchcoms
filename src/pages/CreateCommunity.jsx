@@ -5,9 +5,7 @@ import { supabase } from "../lib/supabase.js";
 import { detectTokenInfo, CHAIN_OPTIONS } from "../lib/dexscreener.js";
 import { uploadImage } from "../lib/storage.js";
 
-const CHAIN_LABELS = Object.fromEntries(
-  CHAIN_OPTIONS.map((c) => [c.id, c.label]),
-);
+const CHAIN_LABELS = Object.fromEntries(CHAIN_OPTIONS.map((c) => [c.id, c.label]));
 
 function slugify(name) {
   return name
@@ -33,11 +31,13 @@ export default function CreateCommunity() {
   const [error, setError] = useState("");
   const [bannerFile, setBannerFile] = useState(null);
   const [bannerPreview, setBannerPreview] = useState("");
+  const [autoBanner, setAutoBanner] = useState("");
 
   const handleBannerChange = (e) => {
     const file = e.target.files?.[0] || null;
     setBannerFile(file);
     setBannerPreview(file ? URL.createObjectURL(file) : "");
+    if (file) setAutoBanner("");
   };
 
   // Result of the DexScreener lookup for the current contract_address.
@@ -56,8 +56,8 @@ export default function CreateCommunity() {
   };
 
   // Debounced contract-address lookup: waits for the user to stop typing,
-  // then auto-detects which chain the address belongs to and asks
-  // DexScreener for the token's name/symbol/logo/description/market cap.
+  // then auto-detects which chain the address belongs to and fetches the
+  // token's name/symbol/logo/banner/description/market cap.
   useEffect(() => {
     const address = form.contract_address.trim();
     if (!address) {
@@ -73,23 +73,20 @@ export default function CreateCommunity() {
           return;
         }
         setLookup({ status: "found", data: info });
+        if (!bannerFile && info.banner) setAutoBanner(info.banner);
         setForm((f) => ({
           ...f,
           chain: chain || f.chain,
           name: !nameTouchedRef.current && info.name ? info.name : f.name,
-          symbol:
-            !symbolTouchedRef.current && info.symbol ? info.symbol : f.symbol,
-          description:
-            !descriptionTouchedRef.current && info.description
-              ? info.description
-              : f.description,
+          symbol: !symbolTouchedRef.current && info.symbol ? info.symbol : f.symbol,
+          description: !descriptionTouchedRef.current && info.description ? info.description : f.description,
         }));
       } catch (err) {
         setLookup({ status: "error", data: null });
       }
     }, 600);
     return () => clearTimeout(timer);
-  }, [form.contract_address]);
+  }, [form.contract_address, bannerFile]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -100,7 +97,7 @@ export default function CreateCommunity() {
     setSubmitting(true);
     setError("");
 
-    let bannerUrl = null;
+    let bannerUrl = autoBanner || null;
     if (bannerFile) {
       try {
         bannerUrl = await uploadImage(bannerFile, "banners", user.id);
@@ -166,37 +163,29 @@ export default function CreateCommunity() {
               style={
                 bannerPreview
                   ? { backgroundImage: `url(${bannerPreview})` }
+                  : autoBanner
+                  ? { backgroundImage: `url(${autoBanner})` }
                   : undefined
               }
             >
-              {!bannerPreview && (
-                <span className="muted">
-                  Recommended 1500×500 — shown at the top of your community page
-                </span>
+              {!bannerPreview && !autoBanner && (
+                <span className="muted">Recommended 1500×500 — shown at the top of your community page</span>
               )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleBannerChange}
-              />
+              <input type="file" accept="image/*" onChange={handleBannerChange} />
             </div>
+            {autoBanner && !bannerFile && (
+              <span className="muted" style={{ fontSize: 12 }}>
+                Found automatically from the contract address — upload your own to override it.
+              </span>
+            )}
           </label>
           <label>
             Name
-            <input
-              value={form.name}
-              onChange={update("name")}
-              placeholder="Project or community name"
-              required
-            />
+            <input value={form.name} onChange={update("name")} placeholder="Project or community name" required />
           </label>
           <label>
             Symbol
-            <input
-              value={form.symbol}
-              onChange={update("symbol")}
-              placeholder="Token symbol"
-            />
+            <input value={form.symbol} onChange={update("symbol")} placeholder="Token symbol" />
           </label>
           <label className="wideField">
             Description
@@ -209,67 +198,39 @@ export default function CreateCommunity() {
           </label>
           <label className="wideField">
             Contract address
-            <input
-              value={form.contract_address}
-              onChange={update("contract_address")}
-              placeholder="Paste the token's contract address"
-            />
+            <input value={form.contract_address} onChange={update("contract_address")} placeholder="Paste the token's contract address" />
             <span className="muted" style={{ fontSize: 12 }}>
-              Chain is detected automatically from the address — no need to pick
-              one.
+              Chain is detected automatically from the address — no need to pick one.
             </span>
           </label>
         </div>
 
         <p className="inlineNotice">
-          Website and social links aren't entered manually — once a contract
-          address is set (now or later, from the community's Edit menu), we'll
-          pull whatever links DexScreener has for that token automatically.
+          Banner, website, and social links fill in automatically once a contract address is set (now or later, from the community's Edit menu) — upload your own banner anytime to override it.
         </p>
 
         {lookup.status === "idle" && (
-          <p className="inlineNotice">
-            Contract address can be added later. Leave it blank and create the
-            community now.
-          </p>
+          <p className="inlineNotice">Contract address can be added later. Leave it blank and create the community now.</p>
         )}
-        {lookup.status === "loading" && (
-          <p className="inlineNotice">
-            Looking up token info on DexScreener...
-          </p>
-        )}
+        {lookup.status === "loading" && <p className="inlineNotice">Looking up token info...</p>}
         {lookup.status === "not-found" && (
-          <p className="inlineNotice">
-            No DexScreener data found for that address yet — you can still
-            create the community and fill this in later.
-          </p>
+          <p className="inlineNotice">No data found for that address yet — you can still create the community and fill this in later.</p>
         )}
         {lookup.status === "error" && (
-          <p className="inlineNotice">
-            Couldn't reach DexScreener — you can still create the community and
-            fill this in later.
-          </p>
+          <p className="inlineNotice">Couldn't fetch token data right now — you can still create the community and fill this in later.</p>
         )}
         {lookup.status === "found" && lookup.data && (
           <div className="tokenPreview">
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               {lookup.data.logo ? (
-                <img
-                  src={lookup.data.logo}
-                  alt=""
-                  style={{ width: 40, height: 40, borderRadius: 8 }}
-                />
+                <img src={lookup.data.logo} alt="" style={{ width: 40, height: 40, borderRadius: 8 }} />
               ) : (
-                <div className="avatar">
-                  {(lookup.data.symbol || "?").slice(0, 1)}
-                </div>
+                <div className="avatar">{(lookup.data.symbol || "?").slice(0, 1)}</div>
               )}
               <div>
                 <strong>{lookup.data.name || form.name}</strong>
                 <br />
-                <span className="symbol">
-                  {lookup.data.symbol ? `$${lookup.data.symbol}` : ""}
-                </span>
+                <span className="symbol">{lookup.data.symbol ? `$${lookup.data.symbol}` : ""}</span>
               </div>
             </div>
             <div>
@@ -280,11 +241,7 @@ export default function CreateCommunity() {
             <div>
               <span className="muted">Market cap</span>
               <br />
-              <strong>
-                {lookup.data.marketCap
-                  ? `$${Number(lookup.data.marketCap).toLocaleString()}`
-                  : "—"}
-              </strong>
+              <strong>{lookup.data.marketCap ? `$${Number(lookup.data.marketCap).toLocaleString()}` : "—"}</strong>
             </div>
           </div>
         )}
@@ -292,11 +249,7 @@ export default function CreateCommunity() {
         {error && <p className="inlineNotice">{error}</p>}
 
         <div className="createActions">
-          <button
-            className="button primary"
-            type="submit"
-            disabled={submitting}
-          >
+          <button className="button primary" type="submit" disabled={submitting}>
             {submitting ? "Creating..." : "Create community"}
           </button>
         </div>
