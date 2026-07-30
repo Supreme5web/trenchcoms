@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { fetchTokenInfo, fetchSolPrice, fetchDexPaidStatus, CHAIN_OPTIONS } from "../lib/dexscreener.js";
-import { fetchHolderCount } from "../lib/holders.js";
 
 const REFRESH_MS = 30000;
 const CHAIN_LABELS = Object.fromEntries(CHAIN_OPTIONS.map((c) => [c.id, c.label]));
@@ -29,7 +28,6 @@ function formatCount(value) {
 export default function LiveTokenPanel({ contractAddress, chain = "solana" }) {
   const [solPrice, setSolPrice] = useState(null);
   const [token, setToken] = useState(null);
-  const [holders, setHolders] = useState(null);
   const [dexPaid, setDexPaid] = useState("Dex Not Paid");
   const [status, setStatus] = useState(contractAddress ? "loading" : "empty");
 
@@ -40,16 +38,14 @@ export default function LiveTokenPanel({ contractAddress, chain = "solana" }) {
       try {
         const solPromise = chain === "solana" ? fetchSolPrice().catch(() => null) : Promise.resolve(null);
         if (contractAddress) {
-          const [sol, info, holderCount, paid] = await Promise.all([
+          const [sol, info, paid] = await Promise.all([
             solPromise,
             fetchTokenInfo(contractAddress, chain),
-            fetchHolderCount(chain, contractAddress),
             chain === "solana" ? fetchDexPaidStatus(contractAddress) : Promise.resolve("Dex Not Paid"),
           ]);
           if (cancelled) return;
           setSolPrice(sol);
           setToken(info);
-          setHolders(holderCount);
           setDexPaid(paid);
           setStatus(info ? "ready" : "no-data");
         } else {
@@ -113,7 +109,7 @@ export default function LiveTokenPanel({ contractAddress, chain = "solana" }) {
             </div>
             <div className="stat">
               <span>Holders</span>
-              <strong>{formatCount(holders)}</strong>
+              <strong>{formatCount(token.holders)}</strong>
             </div>
             <div className="stat">
               <span>24h volume</span>

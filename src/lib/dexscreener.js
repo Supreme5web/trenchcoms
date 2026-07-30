@@ -90,15 +90,61 @@ export async function detectTokenInfo(address) {
   return { chain: "solana", info };
 }
 
+async function fetchCodexTokenInfo(address, chainId) {
+  try {
+    const res = await fetch(`/api/token-info?address=${encodeURIComponent(address)}&chain=${chainId}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const token = data?.token;
+    if (!token) return null;
+    return {
+      name: token.name,
+      symbol: token.symbol,
+      logo: token.logo,
+      priceUsd: token.priceUsd,
+      marketCap: token.marketCap,
+      liquidityUsd: token.liquidityUsd,
+      volume24h: token.volume24h,
+      priceChange24h: token.priceChange24h,
+      dexUrl: null,
+      website: token.website,
+      description: token.description,
+      banner: null,
+      twitter: token.twitter,
+      telegram: token.telegram,
+      discord: token.discord,
+      holders: token.holders,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Codex is the primary source here — one call gets metadata (name, logo,
+ * description, socials) plus live stats (price, market cap, volume, 24h
+ * change) and holders, all together, and it indexes tokens independently of
+ * whether a DEX pair exists yet (so brand-new/pre-migration tokens still
+ * resolve). DexScreener is only used as a fallback when Codex has nothing
+ * for an address, and additionally contributes the "banner" header image
+ * and dexUrl, which Codex doesn't provide.
+ */
 export async function fetchTokenInfo(contractAddress, chainId = "solana") {
   if (!contractAddress) return null;
-  const pairs = await fetchPairsForToken(chainId, contractAddress.trim());
+  const trimmed = contractAddress.trim();
+
+  const [codexInfo, pairs] = await Promise.all([
+    fetchCodexTokenInfo(trimmed, chainId),
+    fetchPairsForToken(chainId, trimmed).catch(() => []),
+  ]);
   const pair = pickBestPair(pairs);
-  if (!pair) return null;
+
+  if (!pair) {
+    return codexInfo;
+  }
 
   const socials = pair.info?.socials || [];
-
-  return {
+  const dexInfo = {
     name: pair.baseToken?.name || null,
     symbol: pair.baseToken?.symbol || null,
     logo: pair.info?.imageUrl || null,
@@ -115,6 +161,17 @@ export async function fetchTokenInfo(contractAddress, chainId = "solana") {
     telegram: pickSocial(socials, "telegram"),
     discord: pickSocial(socials, "discord"),
   };
+
+  if (!codexInfo) return dexInfo;
+
+  // Merge: Codex wins for every field it actually has data for (it's the
+  // primary source); DexScreener fills in anything Codex left null,
+  // including banner/dexUrl which Codex never provides at all.
+  const merged = {};
+  for (const key of new Set([...Object.keys(codexInfo), ...Object.keys(dexInfo)])) {
+    merged[key] = codexInfo[key] ?? dexInfo[key] ?? null;
+  }
+  return merged;
 }
 
 /** Wrapped SOL's own market price, used for the "current SOL price" ticker. */
